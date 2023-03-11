@@ -1,6 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import logo from '@assets/img/logo.svg';
+import React, { ComponentProps, useEffect, useState } from 'react';
+// import logo from '@assets/img/logo.svg';
 import '@pages/popup/Popup.css';
+import Theme from '../common/theme';
+import DeleteIcon from '@mui/icons-material/Delete';
+import {
+	Box,
+	Button as RawButton,
+	ButtonGroup,
+	Container,
+	IconButton,
+	List,
+	ListItem,
+	ListItemButton,
+	ListItemText,
+} from '@mui/material';
 
 type Page = chrome.tabs.Tab
 
@@ -12,6 +25,7 @@ interface SavedPage {
 function Popup() {
 	const [pages, setPages] = useState<SavedPage[]>([]);
 	const [currentPage, setCurrentPage] = useState<Page | null>(null);
+	const isWebPage = !!currentPage?.url?.startsWith('http');
 	const currentPageSaved = !!pages.find(p => p.url === currentPage?.url);
 
 	useEffect(() => {
@@ -21,12 +35,12 @@ function Popup() {
 		})();
 	}, []);
 
-	async function handleRemovePage() {
-		if(!currentPage?.url) {
+	async function handleRemovePage(url = currentPage?.url) {
+		if(!url) {
 			return;
 		}
 
-		const newPages = await removePage(currentPage.url);
+		const newPages = await removePage(url);
 
 		setPages(newPages);
 	}
@@ -41,40 +55,92 @@ function Popup() {
 		setPages(newPages);
 	}
 
-	return (
-		<div className="App">
-			<p>
-				<button>
-					Play
-				</button>
-				<button>
-					Stop
-				</button>
-			</p>
+	async function handleFocus(url: string) {
+		const [page] = await chrome.tabs.query({url})
 
-			<p>
-				{currentPageSaved ? (
-					<button onClick={handleRemovePage}>
-						Remove From Queue
-					</button>
-				) : (
-					<button onClick={handleAddPage}>
-						Add to Queue2
-					</button>
-				)}
-			</p>
-			<ul>
-				{pages.map(p => (
-					<li key={p.url}>
-						<a href={p.url}>{p.title}</a>
-					</li>
-				))}
-			</ul>
-		</div>
+		if(!page?.id) {
+			window.open(url, '_blank');
+			return;
+		}
+
+		if(!page.active) {
+			await chrome.tabs.update(page.id, {active: true})
+		}
+
+		const parentTab = await chrome.windows.get(page.windowId);
+
+		if(parentTab.focused || !parentTab.id) {
+			return;
+		}
+
+		await chrome.windows.update(parentTab.id, { focused: true });
+	}
+
+	return (
+		<Theme>
+			<Box textAlign="center">
+				<p>
+					<ButtonGroup>
+						<Button>
+							Play
+						</Button>
+						<Button>
+							Stop
+						</Button>
+					</ButtonGroup>
+				</p>
+
+				<p>
+					{currentPageSaved ? (
+						<Button onClick={() => handleRemovePage()}>
+							Remove
+						</Button>
+					) : (
+						<Button onClick={handleAddPage} disabled={!isWebPage}>
+							Add
+						</Button>
+					)}
+				</p>
+				<List>
+					{pages.map(p => (
+						<ListItem
+							key={p.url}
+							secondaryAction={
+								<IconButton onClick={() => handleRemovePage(p.url)}>
+									<DeleteIcon />
+								</IconButton>
+							}
+						>
+							<ListItemButton onClick={() => handleFocus(p.url)}>
+								<ListItemText>
+									{p.title}
+								</ListItemText>
+							</ListItemButton>
+						</ListItem>
+					))}
+					{!pages.length && (
+						<ListItem>
+							<ListItemText>
+								No saved items
+							</ListItemText>
+						</ListItem>
+					)}
+				</List>
+			</Box>
+		</Theme>
 	);
 }
 
 export default Popup;
+
+function Button(props: ComponentProps<typeof RawButton>) {
+	return (
+		<RawButton
+			variant="outlined"
+			{...props}
+		/>
+	)
+}
 
 async function getCurrentTabs() {
 	const [ page] = await chrome.tabs.query({
