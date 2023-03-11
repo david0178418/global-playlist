@@ -1,18 +1,25 @@
-import React, { ComponentProps, useEffect, useState } from 'react';
+import React, { ComponentProps, MouseEvent, useEffect, useState } from 'react';
 // import logo from '@assets/img/logo.svg';
 import '@pages/popup/Popup.css';
 import Theme from '../common/theme';
 import DeleteIcon from '@mui/icons-material/Delete';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import PlayIcon from '@mui/icons-material/PlayArrow';
+import StopIcon from '@mui/icons-material/Stop';
+import OpenIcon from '@mui/icons-material/OpenInNew';
 import {
 	Box,
 	Button as RawButton,
 	ButtonGroup,
-	Container,
+	Divider,
 	IconButton,
 	List,
 	ListItem,
 	ListItemButton,
+	ListItemIcon,
 	ListItemText,
+	Menu,
+	MenuItem,
 } from '@mui/material';
 
 type Page = chrome.tabs.Tab
@@ -85,9 +92,11 @@ function Popup() {
 						<ListItem
 							key={p.url}
 							secondaryAction={
-								<IconButton onClick={() => handleRemovePage(p.url)}>
-									<DeleteIcon />
-								</IconButton>
+								<Dropdown
+									isPlaying
+									onDelete={() => handleRemovePage(p.url)}
+									onOpen={() => focusTab(p.url)}
+								/>
 							}
 						>
 							<ListItemButton onClick={() => focusTab(p.url)}>
@@ -111,6 +120,77 @@ function Popup() {
 }
 
 export default Popup;
+
+interface DropdownProps {
+	isPlaying: boolean;
+	onDelete(): void;
+	onOpen(): void;
+}
+
+function Dropdown(props: DropdownProps) {
+	const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+	const isOpen = !!anchorEl;
+	const{
+		isPlaying,
+		onDelete,
+		onOpen,
+	} = props;
+
+	return (
+		<>
+			<IconButton
+				onClick={e => setAnchorEl(e.currentTarget)}
+			>
+				<MoreVertIcon />
+				<Menu
+					anchorEl={anchorEl}
+					open={isOpen}
+					onClose={() => {
+						setAnchorEl(null);
+						console.log(1111);
+					}}
+				>
+					{isPlaying ? (
+						<MenuItem>
+							<ListItemIcon>
+								<StopIcon />
+							</ListItemIcon>
+							<ListItemText>
+								Stop
+							</ListItemText>
+						</MenuItem>
+					) : (
+						<MenuItem>
+							<ListItemIcon>
+								<PlayIcon />
+							</ListItemIcon>
+							<ListItemText>
+								Play
+							</ListItemText>
+						</MenuItem>
+					)}
+					<MenuItem onClick={onOpen}>
+						<ListItemIcon>
+							<OpenIcon />
+						</ListItemIcon>
+						<ListItemText>
+							Open
+						</ListItemText>
+					</MenuItem>
+					<Divider />
+					<MenuItem onClick={onDelete}>
+						<ListItemIcon>
+							<DeleteIcon />
+						</ListItemIcon>
+						<ListItemText>
+							Remove
+						</ListItemText>
+					</MenuItem>
+				</Menu>
+			</IconButton>
+		</>
+	)
+}
 
 function Button(props: ComponentProps<typeof RawButton>) {
 	return (
