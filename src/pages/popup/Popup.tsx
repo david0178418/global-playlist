@@ -55,27 +55,6 @@ function Popup() {
 		setPages(newPages);
 	}
 
-	async function handleFocus(url: string) {
-		const [page] = await chrome.tabs.query({url})
-
-		if(!page?.id) {
-			window.open(url, '_blank');
-			return;
-		}
-
-		if(!page.active) {
-			await chrome.tabs.update(page.id, {active: true})
-		}
-
-		const parentTab = await chrome.windows.get(page.windowId);
-
-		if(parentTab.focused || !parentTab.id) {
-			return;
-		}
-
-		await chrome.windows.update(parentTab.id, { focused: true });
-	}
-
 	return (
 		<Theme>
 			<Box textAlign="center">
@@ -111,7 +90,7 @@ function Popup() {
 								</IconButton>
 							}
 						>
-							<ListItemButton onClick={() => handleFocus(p.url)}>
+							<ListItemButton onClick={() => focusTab(p.url)}>
 								<ListItemText>
 									{p.title}
 								</ListItemText>
@@ -189,4 +168,26 @@ async function removePage(url: string) {
 	await chrome.storage.local.set({ pages });
 
 	return pages;
+}
+
+async function focusTab(url: string) {
+	const [page] = await chrome.tabs.query({url})
+
+	if(!page?.id) {
+		window.open(url, '_blank');
+		return;
+	}
+
+	if(!page.active) {
+		await chrome.tabs.update(page.id, {active: true})
+	}
+
+	const parentTab = await chrome.windows.get(page.windowId);
+
+	if(parentTab.focused || !parentTab.id) {
+		return;
+	}
+
+	await chrome.windows.update(parentTab.id, { focused: true });
+
 }
