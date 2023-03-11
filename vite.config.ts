@@ -47,8 +47,6 @@ export default defineConfig({
 		reportCompressedSize: isProduction,
 		rollupOptions: {
 			input: {
-				devtools: resolve(pagesDir, 'devtools', 'index.html'),
-				panel: resolve(pagesDir, 'panel', 'index.html'),
 				content: resolve(pagesDir, 'content', 'index.ts'),
 				background: resolve(pagesDir, 'background', 'index.ts'),
 				contentStyle: resolve(pagesDir, 'content', 'style.scss'),
@@ -66,8 +64,9 @@ export default defineConfig({
 					: 'assets/js/[name].[hash].js',
 				assetFileNames: (assetInfo) => {
 					const {
-						dir, name: _name,
-					} = path.parse(assetInfo.name);
+						dir,
+						name: _name,
+					} = path.parse(assetInfo.name || '');
 					const assetFolder = dir.split('/').at(-1);
 					const name = assetFolder + firstUpperCase(_name);
 					if (name === 'contentStyle') {
