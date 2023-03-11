@@ -1,26 +1,54 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import logo from '@assets/img/logo.svg';
 import '@pages/popup/Popup.css';
 
-const Popup = () => {
+function Popup() {
+	const [pages, setPages] = useState([]);
+
+	useEffect(() => {
+		console.log('register');
+		const foo: any = ({ pages: { newValue } }) => {
+			console.log(newValue);
+		};
+		chrome.storage.local.onChanged.addListener(foo);
+
+		return () => {
+			console.log('unregister');
+			chrome.storage.local.onChanged.removeListener(foo);
+		};
+	}, [pages]);
+
+	async function savePage() {
+		const [page] = await chrome.tabs.query({
+			active: true,
+			currentWindow: true,
+		});
+
+		await chrome.storage.local.set({ pages: [page] });
+	}
+
 	return (
 		<div className="App">
-			<header className="App-header">
-				<img src={logo} className="App-logo" alt="logo" />
-				<p>
-          Edit <code>src/pages/popup/Popup.tsx</code> and save to reload.
-				</p>
-				<a
-					className="App-link"
-					href="https://reactjs.org"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-          Learn React!
-				</a>
-			</header>
+			<p>
+				<button>
+					Play
+				</button>
+				<button>
+					Stop
+				</button>
+			</p>
+
+			<p>
+				<button onClick={savePage}>
+					Add to Queue2
+				</button>
+				<button>
+				Remove From Queue
+				</button>
+			</p>
+
 		</div>
 	);
-};
+}
 
 export default Popup;
