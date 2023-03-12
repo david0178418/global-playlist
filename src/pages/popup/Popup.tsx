@@ -93,9 +93,11 @@ function Popup() {
 							key={p.url}
 							secondaryAction={
 								<Dropdown
-									isPlaying
+									isPlaying={false}
 									onDelete={() => handleRemovePage(p.url)}
 									onOpen={() => focusTab(p.url)}
+									onPlay={() => play(p.url)}
+									onStop={() => null}
 								/>
 							}
 						>
@@ -125,6 +127,8 @@ interface DropdownProps {
 	isPlaying: boolean;
 	onDelete(): void;
 	onOpen(): void;
+	onPlay(): void;
+	onStop(): void;
 }
 
 function Dropdown(props: DropdownProps) {
@@ -134,60 +138,58 @@ function Dropdown(props: DropdownProps) {
 		isPlaying,
 		onDelete,
 		onOpen,
+		onPlay,
+		onStop,
 	} = props;
 
 	return (
 		<>
-			<IconButton
-				onClick={e => setAnchorEl(e.currentTarget)}
-			>
+			<IconButton onClick={e => setAnchorEl(e.currentTarget)}>
 				<MoreVertIcon />
-				<Menu
-					anchorEl={anchorEl}
-					open={isOpen}
-					onClose={() => {
-						setAnchorEl(null);
-						console.log(1111);
-					}}
-				>
-					{isPlaying ? (
-						<MenuItem>
-							<ListItemIcon>
-								<StopIcon />
-							</ListItemIcon>
-							<ListItemText>
-								Stop
-							</ListItemText>
-						</MenuItem>
-					) : (
-						<MenuItem>
-							<ListItemIcon>
-								<PlayIcon />
-							</ListItemIcon>
-							<ListItemText>
-								Play
-							</ListItemText>
-						</MenuItem>
-					)}
-					<MenuItem onClick={onOpen}>
-						<ListItemIcon>
-							<OpenIcon />
-						</ListItemIcon>
-						<ListItemText>
-							Open
-						</ListItemText>
-					</MenuItem>
-					<Divider />
-					<MenuItem onClick={onDelete}>
-						<ListItemIcon>
-							<DeleteIcon />
-						</ListItemIcon>
-						<ListItemText>
-							Remove
-						</ListItemText>
-					</MenuItem>
-				</Menu>
 			</IconButton>
+			<Menu
+				anchorEl={anchorEl}
+				open={isOpen}
+				onClose={() => setAnchorEl(null)}
+				onClick={() => setAnchorEl(null)}
+			>
+				{isPlaying ? (
+					<MenuItem onClick={onStop}>
+						<ListItemIcon>
+							<StopIcon />
+						</ListItemIcon>
+						<ListItemText>
+							Stop
+						</ListItemText>
+					</MenuItem>
+				) : (
+					<MenuItem onClick={onPlay}>
+						<ListItemIcon>
+							<PlayIcon />
+						</ListItemIcon>
+						<ListItemText>
+							Play
+						</ListItemText>
+					</MenuItem>
+				)}
+				<MenuItem onClick={onOpen}>
+					<ListItemIcon>
+						<OpenIcon />
+					</ListItemIcon>
+					<ListItemText>
+						Open
+					</ListItemText>
+				</MenuItem>
+				<Divider />
+				<MenuItem onClick={onDelete}>
+					<ListItemIcon>
+						<DeleteIcon />
+					</ListItemIcon>
+					<ListItemText>
+						Remove
+					</ListItemText>
+				</MenuItem>
+			</Menu>
 		</>
 	)
 }
@@ -251,7 +253,7 @@ async function removePage(url: string) {
 }
 
 async function focusTab(url: string) {
-	const [page] = await chrome.tabs.query({url})
+	const page = await findPage(url);
 
 	if(!page?.id) {
 		window.open(url, '_blank');
@@ -269,5 +271,25 @@ async function focusTab(url: string) {
 	}
 
 	await chrome.windows.update(parentTab.id, { focused: true });
+}
 
+async function findPage(url: string): Promise<Page | null> {
+	const [page] = await chrome.tabs.query({url})
+
+	return page || null;
+}
+
+async function play(url: string) {
+	const page = await findPage(url) || await chrome.tabs.create({
+		url,
+		active: false,
+	});
+
+	if(!page.id) {
+		return;
+	}
+
+	console.log('sending');
+
+	chrome.tabs.sendMessage(page.id, { action: 'play', foo: 'bar'})
 }
