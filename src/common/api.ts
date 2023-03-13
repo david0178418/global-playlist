@@ -74,8 +74,6 @@ export
 async function focusTab(url: string){
 	let page = await findPage(url) || await chrome.tabs.create({ url });
 
-	console.log(page);
-
 	if(!page?.id) {
 		return;
 	}
@@ -131,13 +129,18 @@ async function pause(url: string) {
 
 export
 async function isPlaying(url: string): Promise<boolean> {
-	const page = await findPage(url);
+	try {
+		const page = await findPage(url);
 
-	if(!page?.id) {
+		if(!page?.id) {
+			return false;
+		}
+
+		return await chrome.tabs.sendMessage(page.id, { action: 'getIsPlaying'});
+	} catch (e) {
+		console.log('err', e);
 		return false;
 	}
-
-	return chrome.tabs.sendMessage(page.id, { action: 'getIsPlaying'});
 }
 
 export

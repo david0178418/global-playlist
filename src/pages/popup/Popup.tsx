@@ -49,7 +49,6 @@ function Popup() {
 			setPages(await getSavedPages());
 			setCurrentPage(await getCurrentTabs());
 			refreshPlayingPages();
-
 		})();
 	}, []);
 
@@ -80,7 +79,10 @@ function Popup() {
 	async function handleMainClick(url: string) {
 		if(playingMap[url]) {
 			await handlePause(url);
+			return;
 		}
+
+		await pauseAll(url);
 
 		if(await findPage(url)) {
 			await handlePlay(url);
@@ -93,17 +95,18 @@ function Popup() {
 	}
 
 	async function handleFocusTab(url: string) {
+		console.log('handleFocusTab', url);
 		await focusTab(url);
-		await pauseAll(url);
 	}
 
 	async function handlePlay(url: string) {
+		console.log('handlePlay', url);
 		await play(url);
-		await pauseAll(url);
 		await refreshPlayingPages();
 	}
 
 	async function handlePause(url: string) {
+		console.log('handlePause', url);
 		await pause(url);
 		await refreshPlayingPages();
 	}
