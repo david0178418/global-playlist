@@ -10,11 +10,13 @@ import OpenIcon from '@mui/icons-material/OpenInNew';
 import { Page, SavedPage } from '@src/common/types';
 import {
 	addPage,
+	findPage,
 	focusTab,
 	getCurrentTabs,
 	getPlayingPages,
 	getSavedPages,
 	pause,
+	pauseAll,
 	play,
 	removePage,
 } from '@src/common/api';
@@ -77,23 +79,27 @@ function Popup() {
 
 	async function handleMainClick(url: string) {
 		if(playingMap[url]) {
-			await pause(url);
-		} else {
-			currentPage?.url === url ?
-				await play(url) :
-				await focusTab(url);
+			await handlePause(url);
 		}
 
-		await refreshPlayingPages();
+		if(await findPage(url)) {
+			await handlePlay(url);
+			await handleFocusTab(url);
+		} else {
+			await handleFocusTab(url);
+			await handlePlay(url);
+		}
+
 	}
 
 	async function handleFocusTab(url: string) {
 		await focusTab(url);
-		await refreshPlayingPages();
+		await pauseAll(url);
 	}
 
 	async function handlePlay(url: string) {
 		await play(url);
+		await pauseAll(url);
 		await refreshPlayingPages();
 	}
 

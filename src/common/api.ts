@@ -39,9 +39,10 @@ async function addPage(page: Page): Promise<SavedPage[]> {
 	const {
 		url,
 		title,
+		favIconUrl,
 	} = page;
 
-	if(!(url && title)) {
+	if(!(url && title && favIconUrl)) {
 		return currentPages;
 	}
 
@@ -49,6 +50,7 @@ async function addPage(page: Page): Promise<SavedPage[]> {
 		{
 			url,
 			title,
+			favIconUrl,
 		},
 		...currentPages,
 	];
@@ -69,11 +71,12 @@ async function removePage(url: string) {
 }
 
 export
-async function focusTab(url: string) {
-	const page = await findPage(url);
+async function focusTab(url: string){
+	let page = await findPage(url) || await chrome.tabs.create({ url });
+
+	console.log(page);
 
 	if(!page?.id) {
-		window.open(url, '_blank');
 		return;
 	}
 
@@ -135,4 +138,13 @@ async function isPlaying(url: string): Promise<boolean> {
 	}
 
 	return chrome.tabs.sendMessage(page.id, { action: 'getIsPlaying'});
+}
+
+export
+async function pauseAll(exceptionUrl?: string) {
+	const allPages = await chrome.tabs.query({});
+
+	await allPages
+		.filter(p => p.url !== exceptionUrl)
+		.map(async p => p.url && await pause(p.url));
 }

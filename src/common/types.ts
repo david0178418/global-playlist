@@ -6,4 +6,5 @@ export
 interface SavedPage {
 	title: string;
 	url: string;
+	favIconUrl: string;
 }

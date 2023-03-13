@@ -36,6 +36,7 @@ function getIsPlaying() {
 }
 
 function play() {
+	console.log('playing');
 	const [video] = document.getElementsByTagName('video');
 
 	if(!video) {
@@ -45,14 +46,11 @@ function play() {
 	video.play();
 }
 
-function pause() {
-	const [video] = document.getElementsByTagName('video');
+async function pause() {
+	console.log('pausing');
+	const videos = document.getElementsByTagName('video');
 
-	if(!video) {
-		return;
-	}
-
-	video.pause();
+	await Promise.all([...videos].map(v => v.pause()));
 }
 
 function keys<T extends Record<any, unknown>>(obj: T): Array<keyof T> {
