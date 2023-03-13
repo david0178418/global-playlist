@@ -7,10 +7,22 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PlayIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import OpenIcon from '@mui/icons-material/OpenInNew';
+import { Page, SavedPage } from '@src/common/types';
+import {
+	addPage,
+	focusTab,
+	getCurrentTabs,
+	getPlayingPages,
+	getSavedPages,
+	pause,
+	play,
+	removePage,
+} from '@src/common/api';
 import {
 	Box,
 	Button as RawButton,
 	ButtonGroup,
+	Chip,
 	Divider,
 	IconButton,
 	List,
@@ -22,16 +34,11 @@ import {
 	MenuItem,
 } from '@mui/material';
 
-type Page = chrome.tabs.Tab
-
-interface SavedPage {
-	title: string;
-	url: string;
-}
 
 function Popup() {
 	const [pages, setPages] = useState<SavedPage[]>([]);
 	const [currentPage, setCurrentPage] = useState<Page | null>(null);
+	const [playingMap, setPlayingMap] = useState<Record<string, boolean>>({});
 	const isWebPage = !!currentPage?.url?.startsWith('http');
 	const currentPageSaved = !!pages.find(p => p.url === currentPage?.url);
 
@@ -39,8 +46,14 @@ function Popup() {
 		(async () => {
 			setPages(await getSavedPages());
 			setCurrentPage(await getCurrentTabs());
+			refreshPlayingPages();
+
 		})();
 	}, []);
+
+	async function refreshPlayingPages() {
+		setPlayingMap(await getPlayingPages());
+	}
 
 	async function handleRemovePage(url = currentPage?.url) {
 		if(!url) {
@@ -60,6 +73,33 @@ function Popup() {
 		const newPages = await addPage(currentPage);
 
 		setPages(newPages);
+	}
+
+	async function handleMainClick(url: string) {
+		if(playingMap[url]) {
+			await pause(url);
+		} else {
+			currentPage?.url === url ?
+				await play(url) :
+				await focusTab(url);
+		}
+
+		await refreshPlayingPages();
+	}
+
+	async function handleFocusTab(url: string) {
+		await focusTab(url);
+		await refreshPlayingPages();
+	}
+
+	async function handlePlay(url: string) {
+		await play(url);
+		await refreshPlayingPages();
+	}
+
+	async function handlePause(url: string) {
+		await pause(url);
+		await refreshPlayingPages();
 	}
 
 	return (
@@ -90,19 +130,31 @@ function Popup() {
 				<List>
 					{pages.map(p => (
 						<ListItem
+							disableGutters
 							key={p.url}
 							secondaryAction={
 								<Dropdown
-									isPlaying={false}
+									isPlaying={playingMap[p.url]}
 									onDelete={() => handleRemovePage(p.url)}
-									onOpen={() => focusTab(p.url)}
-									onPlay={() => play(p.url)}
-									onStop={() => null}
+									onOpen={() => handleFocusTab(p.url)}
+									onPlay={() => handlePlay(p.url)}
+									onStop={() => handlePause(p.url)}
 								/>
 							}
 						>
-							<ListItemButton onClick={() => focusTab(p.url)}>
-								<ListItemText>
+							<ListItemButton onClick={() => handleMainClick(p.url)}>
+								<ListItemText
+									secondary={(
+										playingMap[p.url] && (
+											<Chip
+												label="Playing"
+												variant="outlined"
+												size="small"
+												icon={<PlayIcon />}
+											/>
+										)
+									)}
+								>
 									{p.title}
 								</ListItemText>
 							</ListItemButton>
@@ -122,6 +174,11 @@ function Popup() {
 }
 
 export default Popup;
+
+interface PageListItemProps {
+	page: SavedPage;
+	isPlaying: boolean;
+}
 
 interface DropdownProps {
 	isPlaying: boolean;
@@ -201,95 +258,4 @@ function Button(props: ComponentProps<typeof RawButton>) {
 			{...props}
 		/>
 	)
-}
-
-async function getCurrentTabs() {
-	const [ page] = await chrome.tabs.query({
-		active: true,
-		currentWindow: true,
-	});
-
-	return page;
-}
-
-async function getSavedPages(): Promise<SavedPage[]> {
-	const { pages = [] } = await chrome.storage.local.get('pages');
-
-	return pages;
-}
-
-async function addPage(page: Page): Promise<SavedPage[]> {
-	const currentPages = await getSavedPages();
-	const {
-		url,
-		title,
-	} = page;
-
-	if(!(url && title)) {
-		console.log(url, title);
-		return currentPages;
-	}
-
-	const pages = [
-		{
-			url,
-			title,
-		},
-		...currentPages,
-	];
-
-	await chrome.storage.local.set({ pages });
-
-	return pages;
-}
-
-async function removePage(url: string) {
-	const currentPages = await getSavedPages();
-	const pages = currentPages.filter(p => p.url !== url);
-
-	await chrome.storage.local.set({ pages });
-
-	return pages;
-}
-
-async function focusTab(url: string) {
-	const page = await findPage(url);
-
-	if(!page?.id) {
-		window.open(url, '_blank');
-		return;
-	}
-
-	if(!page.active) {
-		await chrome.tabs.update(page.id, {active: true})
-	}
-
-	const parentTab = await chrome.windows.get(page.windowId);
-
-	if(parentTab.focused || !parentTab.id) {
-		return;
-	}
-
-	await chrome.windows.update(parentTab.id, { focused: true });
-}
-
-async function findPage(url: string): Promise<Page | null> {
-	const [page] = await chrome.tabs.query({url})
-
-	return page || null;
-}
-
-async function play(url: string) {
-	const page = await findPage(url) || await chrome.tabs.create({
-		url,
-		active: false,
-	});
-
-	if(!page.id) {
-		return;
-	}
-
-	console.log('sending');
-
-	chrome.tabs.sendMessage(page.id, { action: 'play', foo: 'bar'})
 }

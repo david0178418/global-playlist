@@ -1,22 +1,39 @@
 console.log('content loaded');
 
-chrome.runtime.onMessage.addListener((msg) => {
-	const action: string = msg.action;
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	const action: string = request.action;
 
-	if(!(action === 'play' || action === 'pause')) {
+	if(!(action === 'play' || action === 'pause' || action === 'getIsPlaying')) {
 		return;
 	}
 
-	Actions[action]();
+	const res = Actions[action]();
 
-	// Return true to expect reponse
-	// return true;
+	sendResponse(res);
+
+	return true;
 });
 
 const Actions = {
 	play,
 	pause,
+	getIsPlaying,
 } as const;
+
+function getIsPlaying() {
+	const [video] = document.getElementsByTagName('video');
+
+	if(!video) {
+		return false;
+	}
+
+	return !!(
+		video.currentTime > 0 &&
+		!video.paused &&
+		!video.ended &&
+		video.readyState > 2
+	);
+}
 
 function play() {
 	const [video] = document.getElementsByTagName('video');
