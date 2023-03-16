@@ -141,7 +141,7 @@ async function focusTab(url: string){
 
 		await chrome.windows.update(parentWindow.id, { focused: true });
 	} catch(e) {
-		console.error('err:focusTab', e);
+		console.log('err:focusTab', e);
 	}
 }
 
@@ -178,7 +178,7 @@ async function play(url: string) {
 
 		await chrome.tabs.sendMessage(page.id, { action: 'play'});
 	} catch(e) {
-		console.error('err:play', e);
+		console.log('err:play', e);
 	}
 }
 

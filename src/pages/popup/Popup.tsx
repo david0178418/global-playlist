@@ -43,6 +43,7 @@ import {
 	ListItemText,
 	Menu,
 	MenuItem,
+	Typography,
 } from '@mui/material';
 
 
@@ -167,9 +168,10 @@ function Popup() {
 						</Button>
 					)}
 				</p>
-				<List>
+				<List dense>
 					{pages.map(p => (
 						<ListItem
+							disablePadding
 							disableGutters
 							key={p.url}
 							secondaryAction={
@@ -188,6 +190,10 @@ function Popup() {
 						>
 							<ListItemButton onClick={() => handleMainClick(p.url)}>
 								<ListItemText
+									primaryTypographyProps={{
+										display: 'inline',
+										component: 'span',
+									}}
 									secondary={(
 										playingMap[p.url] && (
 											<Chip
@@ -199,6 +205,13 @@ function Popup() {
 										)
 									)}
 								>
+									<Box
+										component="img"
+										src={p.favIconUrl}
+										width={12}
+										height={12}
+										paddingRight={1}
+									/>
 									{p.title}
 								</ListItemText>
 							</ListItemButton>
