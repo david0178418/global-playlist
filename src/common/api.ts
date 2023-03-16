@@ -71,24 +71,90 @@ async function removePage(url: string) {
 }
 
 export
+async function movePageToTop(page: SavedPage): Promise<SavedPage[]> {
+	const currentPages = await getSavedPages();
+	const filteredPages = currentPages.filter(p => p.url !== page.url);
+	const pages = [
+		page,
+		...filteredPages
+	];
+
+	await chrome.storage.local.set({ pages });
+
+	return pages;
+}
+
+export
+async function movePageUp(page: SavedPage): Promise<SavedPage[]> {
+	const currentPages = await getSavedPages();
+	const pageIndex = currentPages.findIndex(p => p.url === page.url);
+	const pages = moveItemLeft(currentPages, pageIndex);
+
+	await chrome.storage.local.set({ pages });
+
+	return pages;
+}
+
+export
+async function movePageDown(page: SavedPage): Promise<SavedPage[]> {
+	const currentPages = await getSavedPages();
+	const pageIndex = currentPages.findIndex(p => p.url === page.url);
+	const pages = moveItemRight(currentPages, pageIndex);
+
+	await chrome.storage.local.set({ pages });
+
+	return pages;
+}
+
+export
+async function movePageToBottom(page: SavedPage): Promise<SavedPage[]> {
+	const currentPages = await getSavedPages();
+	const filteredPages = currentPages.filter(p => p.url !== page.url);
+	const pages = [
+		...filteredPages,
+		page,
+	];
+
+	await chrome.storage.local.set({ pages });
+
+	return pages;
+}
+
+export
 async function focusTab(url: string){
-	let page = await findPage(url) || await chrome.tabs.create({ url });
+	try {
+		let page = await findPage(url);
 
-	if(!page?.id) {
-		return;
+		if(!page?.id) {
+			return;
+		}
+
+		if(!page.active) {
+			await chrome.tabs.update(page.id, { active: true })
+		}
+
+		const parentWindow = await chrome.windows.get(page.windowId);
+
+		if(parentWindow.focused || !parentWindow.id) {
+			return;
+		}
+
+		await chrome.windows.update(parentWindow.id, { focused: true });
+	} catch(e) {
+		console.error('err:focusTab', e);
 	}
+}
 
-	if(!page.active) {
-		await chrome.tabs.update(page.id, {active: true})
+export
+async function openPage(url: string, active = false) {
+	try {
+		await chrome.tabs.create({
+			url,
+			active,
+		});
+	} catch(e) {
+		console.log('err:openPage', e);
 	}
-
-	const parentTab = await chrome.windows.get(page.windowId);
-
-	if(parentTab.focused || !parentTab.id) {
-		return;
-	}
-
-	await chrome.windows.update(parentTab.id, { focused: true });
 }
 
 export
@@ -100,31 +166,38 @@ async function findPage(url: string): Promise<Page | null> {
 
 export
 async function play(url: string) {
-	const page = await findPage(url) || await chrome.tabs.create({
-		url,
-		active: false,
-	});
+	try {
+		const page = await findPage(url) || await chrome.tabs.create({
+			url,
+			active: false,
+		});
 
-	if(!page.id) {
-		return;
+		if(!page.id) {
+			return;
+		}
+
+		await chrome.tabs.sendMessage(page.id, { action: 'play'});
+	} catch(e) {
+		console.error('err:play', e);
 	}
-
-	await chrome.tabs.sendMessage(page.id, { action: 'play'});
 }
 
 export
 async function pause(url: string) {
-	const page = await findPage(url) || await chrome.tabs.create({
-		url,
-		active: false,
-	});
+	try {
+		const page = await findPage(url) || await chrome.tabs.create({
+			url,
+			active: false,
+		});
 
-	if(!page.id) {
-		return;
+		if(!page.id) {
+			return;
+		}
+
+		await chrome.tabs.sendMessage(page.id, { action: 'pause'});
+	} catch(e) {
+		console.log('err:pause', e);
 	}
-
-	await chrome.tabs.sendMessage(page.id, { action: 'pause'});
-
 }
 
 export
@@ -138,7 +211,7 @@ async function isPlaying(url: string): Promise<boolean> {
 
 		return await chrome.tabs.sendMessage(page.id, { action: 'getIsPlaying'});
 	} catch (e) {
-		console.log('err', e);
+		console.log('err:isPlaying', e);
 		return false;
 	}
 }
@@ -150,4 +223,34 @@ async function pauseAll(exceptionUrl?: string) {
 	await allPages
 		.filter(p => p.url !== exceptionUrl)
 		.map(async p => p.url && await pause(p.url));
+}
+
+// Util fns
+
+export
+function swapItems<T>(arr: T[], indexA: number, indexB: number): T[] {
+	// TODO Cover edge cases
+	const newArr = arr.slice(0);
+
+	[newArr[indexB], newArr[indexA]] = [arr[indexA], arr[indexB]];
+
+	return newArr;
+}
+
+export
+function moveItemRight<T>(arr: T[], itemIndex: number): T[] {
+	if(itemIndex >= arr.length) {
+		return arr;
+	}
+
+	return swapItems(arr, itemIndex, itemIndex + 1);
+}
+
+export
+function moveItemLeft<T>(arr: T[], itemIndex: number): T[] {
+	if(itemIndex <= 0) {
+		return arr;
+	}
+
+	return swapItems(arr, itemIndex, itemIndex - 1);
 }

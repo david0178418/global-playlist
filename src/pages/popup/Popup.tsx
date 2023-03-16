@@ -6,6 +6,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PlayIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
+import UpIcon from '@mui/icons-material/KeyboardArrowUp';
+import DownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ToTopIcon from '@mui/icons-material/KeyboardDoubleArrowUp';
+import ToBottomIcon from '@mui/icons-material/KeyboardDoubleArrowDown';
 import OpenIcon from '@mui/icons-material/OpenInNew';
 import { Page, SavedPage } from '@src/common/types';
 import {
@@ -15,6 +19,11 @@ import {
 	getCurrentTabs,
 	getPlayingPages,
 	getSavedPages,
+	movePageDown,
+	movePageToBottom,
+	movePageToTop,
+	movePageUp,
+	openPage,
 	pause,
 	pauseAll,
 	play,
@@ -53,6 +62,7 @@ function Popup() {
 	}, []);
 
 	async function refreshPlayingPages() {
+		console.log('refreshPlayingPages');
 		setPlayingMap(await getPlayingPages());
 	}
 
@@ -82,26 +92,26 @@ function Popup() {
 			return;
 		}
 
-		await pauseAll(url);
-
-		if(await findPage(url)) {
-			await handlePlay(url);
-			await handleFocusTab(url);
-		} else {
-			await handleFocusTab(url);
-			await handlePlay(url);
-		}
-
+		await handlePlay(url);
 	}
 
 	async function handleFocusTab(url: string) {
 		console.log('handleFocusTab', url);
-		await focusTab(url);
 	}
 
 	async function handlePlay(url: string) {
 		console.log('handlePlay', url);
+
+		await pauseAll(url);
+
+		if(!await findPage(url)) {
+			await openPage(url);
+			await sleep(750); // TODO Figure out how to wait for page load
+		}
+
 		await play(url);
+
+		await focusTab(url);
 		await refreshPlayingPages();
 	}
 
@@ -109,6 +119,27 @@ function Popup() {
 		console.log('handlePause', url);
 		await pause(url);
 		await refreshPlayingPages();
+	}
+
+	async function handleOnMoveToTop(page: SavedPage) {
+		setPages(
+			await movePageToTop(page)
+		);
+	}
+	async function handleOnMoveUp(page: SavedPage) {
+		setPages(
+			await movePageUp(page)
+		);
+	}
+	async function handleOnMoveDown(page: SavedPage) {
+		setPages(
+			await movePageDown(page)
+		);
+	}
+	async function handleOnMoveToBottom(page: SavedPage) {
+		setPages(
+			await movePageToBottom(page)
+		);
 	}
 
 	return (
@@ -148,6 +179,10 @@ function Popup() {
 									onOpen={() => handleFocusTab(p.url)}
 									onPlay={() => handlePlay(p.url)}
 									onStop={() => handlePause(p.url)}
+									onMoveToTop={() => handleOnMoveToTop(p)}
+									onMoveUp={() => handleOnMoveUp(p)}
+									onMoveDown={() => handleOnMoveDown(p)}
+									onMoveToBottom={() => handleOnMoveToBottom(p)}
 								/>
 							}
 						>
@@ -195,6 +230,10 @@ interface DropdownProps {
 	onOpen(): void;
 	onPlay(): void;
 	onStop(): void;
+	onMoveToTop(): void;
+	onMoveUp(): void;
+	onMoveDown(): void;
+	onMoveToBottom(): void;
 }
 
 function Dropdown(props: DropdownProps) {
@@ -206,6 +245,10 @@ function Dropdown(props: DropdownProps) {
 		onOpen,
 		onPlay,
 		onStop,
+		onMoveToTop,
+		onMoveUp,
+		onMoveDown,
+		onMoveToBottom,
 	} = props;
 
 	return (
@@ -246,6 +289,38 @@ function Dropdown(props: DropdownProps) {
 						Open
 					</ListItemText>
 				</MenuItem>
+				<MenuItem onClick={onMoveToTop}>
+					<ListItemIcon>
+						<ToTopIcon />
+					</ListItemIcon>
+					<ListItemText>
+						Move to Top
+					</ListItemText>
+				</MenuItem>
+				<MenuItem onClick={onMoveUp}>
+					<ListItemIcon>
+						<UpIcon />
+					</ListItemIcon>
+					<ListItemText>
+						Move Up
+					</ListItemText>
+				</MenuItem>
+				<MenuItem onClick={onMoveDown}>
+					<ListItemIcon>
+						<DownIcon />
+					</ListItemIcon>
+					<ListItemText>
+						Move Down
+					</ListItemText>
+				</MenuItem>
+				<MenuItem onClick={onMoveToBottom}>
+					<ListItemIcon>
+						<ToBottomIcon />
+					</ListItemIcon>
+					<ListItemText>
+						Move to Bottom
+					</ListItemText>
+				</MenuItem>
 				<Divider />
 				<MenuItem onClick={onDelete}>
 					<ListItemIcon>
@@ -267,4 +342,8 @@ function Button(props: ComponentProps<typeof RawButton>) {
 			{...props}
 		/>
 	)
+}
+
+function sleep(ms: number) {
+	return new Promise(resolve => setTimeout(resolve, ms));
 }
