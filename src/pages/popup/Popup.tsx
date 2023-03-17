@@ -11,12 +11,14 @@ import DownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ToTopIcon from '@mui/icons-material/KeyboardDoubleArrowUp';
 import ToBottomIcon from '@mui/icons-material/KeyboardDoubleArrowDown';
 import OpenIcon from '@mui/icons-material/OpenInNew';
+import AddIcon from '@mui/icons-material/Add';
+import PauseIcon from '@mui/icons-material/Pause';
 import { Page, SavedPage } from '@src/common/types';
 import {
 	addPage,
 	findPage,
 	focusTab,
-	getCurrentTabs,
+	getFocusedTab,
 	getPlayingPages,
 	getSavedPages,
 	movePageDown,
@@ -32,7 +34,6 @@ import {
 import {
 	Box,
 	Button as RawButton,
-	ButtonGroup,
 	Chip,
 	Divider,
 	IconButton,
@@ -43,9 +44,7 @@ import {
 	ListItemText,
 	Menu,
 	MenuItem,
-	Typography,
 } from '@mui/material';
-
 
 function Popup() {
 	const [pages, setPages] = useState<SavedPage[]>([]);
@@ -53,11 +52,15 @@ function Popup() {
 	const [playingMap, setPlayingMap] = useState<Record<string, boolean>>({});
 	const isWebPage = !!currentPage?.url?.startsWith('http');
 	const currentPageSaved = !!pages.find(p => p.url === currentPage?.url);
+	const currentPageIsPlaying = !!playingMap[currentPage?.url || ''];
+	const currentSavedPage = pages.find(p => p.url === currentPage?.url);
+	const playingPages = pages.filter(p => playingMap[p.url]);
+	const otherPlayingPages = playingPages.filter(p => p.url !== currentSavedPage?.url)
 
 	useEffect(() => {
 		(async () => {
 			setPages(await getSavedPages());
-			setCurrentPage(await getCurrentTabs());
+			setCurrentPage(await getFocusedTab());
 			refreshPlayingPages();
 		})();
 	}, []);
@@ -107,7 +110,6 @@ function Popup() {
 
 		if(!await findPage(url)) {
 			await openPage(url);
-			await sleep(750); // TODO Figure out how to wait for page load
 		}
 
 		await play(url);
@@ -145,29 +147,138 @@ function Popup() {
 
 	return (
 		<Theme>
-			<Box textAlign="center">
-				<p>
-					<ButtonGroup>
-						<Button>
-							Play
-						</Button>
-						<Button>
-							Stop
-						</Button>
-					</ButtonGroup>
-				</p>
-
-				<p>
-					{currentPageSaved ? (
-						<Button onClick={() => handleRemovePage()}>
-							Remove
-						</Button>
-					) : (
-						<Button onClick={handleAddPage} disabled={!isWebPage}>
-							Add
-						</Button>
+			<Box textAlign="center" paddingTop={2}>
+				{!currentPageSaved && (
+					<Button
+						size="small"
+						onClick={handleAddPage}
+						disabled={!isWebPage}
+						endIcon={<AddIcon/>}
+					>
+						Add
+					</Button>
+				)}
+				<List>
+					{currentSavedPage && (
+						<ListItem
+							disablePadding
+							secondaryAction={
+								<IconButton
+									edge="end"
+									onClick={() => handleRemovePage()}
+								>
+									<DeleteIcon />
+								</IconButton>
+							}
+						>
+							<ListItemButton
+								onClick={
+									() => currentPageIsPlaying ?
+										handlePause(currentSavedPage.url):
+										handlePlay(currentSavedPage.url)
+								}
+							>
+								<ListItemIcon>
+									{currentPageIsPlaying ? (
+										<PauseIcon/>
+									) : (
+										<PlayIcon/>
+									)}
+								</ListItemIcon>
+								<ListItemText primary={
+									<>
+										{currentSavedPage.favIconUrl && (
+											<Box
+												component="img"
+												src={currentSavedPage.favIconUrl}
+												width={12}
+												height={12}
+												paddingRight={1}
+											/>
+										)}
+										{currentSavedPage.title || currentSavedPage.url}
+									</>
+								} />
+							</ListItemButton>
+						</ListItem>
 					)}
-				</p>
+					{!!otherPlayingPages.length && (
+						<>
+							<Divider />
+							{otherPlayingPages.map(p => (
+								<ListItem
+									key={p.url}
+									disablePadding
+									secondaryAction={
+										<IconButton
+											edge="end"
+											onClick={() => handleRemovePage()}
+										>
+											<DeleteIcon />
+										</IconButton>
+									}
+								>
+									<ListItemButton
+										onClick={
+											() => playingMap[p.url] ?
+												handlePause(p.url):
+												handlePlay(p.url)
+										}
+									>
+										<ListItemIcon>
+											{playingMap[p.url] ? (
+												<PauseIcon/>
+											) : (
+												<PlayIcon/>
+											)}
+										</ListItemIcon>
+										<ListItemText primary={
+											<>
+												{p.favIconUrl && (
+													<Box
+														component="img"
+														src={p.favIconUrl}
+														width={12}
+														height={12}
+														paddingRight={1}
+													/>
+												)}
+												{p.title || p.url}
+											</>
+										} />
+									</ListItemButton>
+								</ListItem>
+							))}
+						</>
+					)}
+				</List>
+						{/* <ButtonGroup>
+							{currentSavedPage && (
+								<>
+									{currentPageIsPlaying ? (
+										<Button
+											size="small"
+											startIcon={<PauseIcon />}
+											onClick={() => handlePause(currentSavedPage.url)}
+										>
+											Pause
+										</Button>
+									) : (
+										<Button
+											size="small"
+											startIcon={<PlayIcon/>}
+											onClick={() => handlePlay(currentSavedPage.url)}
+										>
+											Play
+										</Button>
+									)}
+								</>
+						</ButtonGroup> */}
+				{playingPages.filter(p => p.url !== currentSavedPage?.url).map(p => (
+					<Button onClick={() => currentPage?.url && handlePlay(currentPage.url)}>
+						Play
+					</Button>
+				))}
 				<List dense>
 					{pages.map(p => (
 						<ListItem
@@ -205,14 +316,16 @@ function Popup() {
 										)
 									)}
 								>
-									<Box
-										component="img"
-										src={p.favIconUrl}
-										width={12}
-										height={12}
-										paddingRight={1}
-									/>
-									{p.title}
+									{p.favIconUrl && (
+										<Box
+											component="img"
+											src={p.favIconUrl}
+											width={12}
+											height={12}
+											paddingRight={1}
+										/>
+									)}
+									{p.title || p.url}
 								</ListItemText>
 							</ListItemButton>
 						</ListItem>

@@ -11,6 +11,9 @@
 .DS_Store
 .env.local
 .idea
+*.pem
+*.crx
+*.zip
 
 # compiled
 utils/reload/*.js

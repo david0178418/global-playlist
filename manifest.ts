@@ -19,10 +19,12 @@ const manifest: chrome.runtime.ManifestV3 = {
 	},
 	permissions: [
 		'activeTab',
+		'contentSettings',
 		'scripting',
 		'storage',
 		'tabs',
 		'tts',
+		'contextMenus',
 	],
 	icons: { 128: 'icon-128.png'	},
 	content_scripts: [

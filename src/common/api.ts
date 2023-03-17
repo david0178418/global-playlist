@@ -1,8 +1,8 @@
 import { Page, SavedPage } from "./types";
 
 export
-async function getCurrentTabs() {
-	const [ page] = await chrome.tabs.query({
+async function getFocusedTab() {
+	const [ page ] = await chrome.tabs.query({
 		active: true,
 		currentWindow: true,
 	});
@@ -33,16 +33,18 @@ async function getPlayingPages(): Promise<Record<string, boolean>> {
 	}));
 }
 
+type PageSavePartial = Pick<chrome.tabs.Tab, 'title' | 'url' | 'favIconUrl'>;
+
 export
-async function addPage(page: Page): Promise<SavedPage[]> {
+async function addPage(page: PageSavePartial): Promise<SavedPage[]> {
 	const currentPages = await getSavedPages();
 	const {
 		url,
-		title,
-		favIconUrl,
+		title = '',
+		favIconUrl = '',
 	} = page;
 
-	if(!(url && title && favIconUrl)) {
+	if(!(url)) {
 		return currentPages;
 	}
 
@@ -64,6 +66,26 @@ export
 async function removePage(url: string) {
 	const currentPages = await getSavedPages();
 	const pages = currentPages.filter(p => p.url !== url);
+
+	await chrome.storage.local.set({ pages });
+
+	return pages;
+}
+
+export
+async function updatePage(page: SavedPage) {
+	const currentPages = await getSavedPages();
+	const pages = currentPages.map(p => {
+		if(p.url !== page.url) {
+			return p;
+		}
+
+		return {
+			url: p.url,
+			title: page.title,
+			favIconUrl: page.favIconUrl,
+		};
+	});
 
 	await chrome.storage.local.set({ pages });
 
@@ -165,15 +187,25 @@ async function findPage(url: string): Promise<Page | null> {
 }
 
 export
-async function play(url: string) {
+async function play(url: string, replaceUrl = '') {
 	try {
-		const page = await findPage(url) || await chrome.tabs.create({
+		let page = await findPage(replaceUrl || url) || await chrome.tabs.create({
 			url,
 			active: false,
 		});
 
 		if(!page.id) {
 			return;
+		}
+
+		if(replaceUrl) {
+			page = await chrome.tabs.update(page.id, {
+				url,
+			});
+
+			if(!page.id) {
+				return
+			}
 		}
 
 		await chrome.tabs.sendMessage(page.id, { action: 'play'});
