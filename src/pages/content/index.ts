@@ -33,31 +33,55 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
 	return true;
 });
 
-chrome.runtime.sendMessage({
-	action: 'checkPageData',
-	data: {
-		url: location.href,
+chrome.runtime.sendMessage(
+	{
+		action: 'checkPageData',
+		data: {
+			url: location.href,
+		},
 	},
-});
+	({isSaved}) => {
+		const fooListener = foo(isSaved);
+		document.addEventListener('DOMNodeInserted', fooListener);
 
-// Grab only the first for now.
-document.addEventListener('DOMNodeInserted', foo);
-
-sleep(10_000).then(() => document.removeEventListener('DOMNodeInserted', foo))
-
-function foo() {
-	const video = document.querySelector('video');
-
-	if(video?.src) {
-		video.addEventListener('ended', () => broadcastFinished(location.href));
-		document.removeEventListener('DOMNodeInserted', foo);
-
-		if(video.paused) {
-			video.play();
-		}
+		sleep(10_000).then(() => document.removeEventListener('DOMNodeInserted', fooListener))
 	}
-}
+);
 
+
+
+function foo(isSaved: boolean) {
+	const fooListener = () => {
+		const video = document.querySelector('video');
+		const spotifyPlayBtn = document.querySelector<HTMLButtonElement>('[data-testid=play-button]');
+
+		console.log('spotifyPlayBtn', spotifyPlayBtn);
+
+		if(video?.src) {
+			video.addEventListener('ended', () => broadcastFinished(location.href));
+			document.removeEventListener('DOMNodeInserted', fooListener);
+
+			if(isSaved && video.paused) {
+				video.play();
+			}
+
+			return;
+		}
+
+		if(spotifyPlayBtn) {
+			document.removeEventListener('DOMNodeInserted', fooListener);
+
+			if(isSaved) {
+				console.log('click!');
+				setTimeout(() => {
+					spotifyPlayBtn.click();
+				}, 750);
+			}
+		}
+	};
+
+	return fooListener;
+}
 
 function getIsPlaying() {
 	// Grab only the first for now.

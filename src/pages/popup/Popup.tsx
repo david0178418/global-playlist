@@ -55,7 +55,7 @@ function Popup() {
 	const currentPageIsPlaying = !!playingMap[currentPage?.url || ''];
 	const currentSavedPage = pages.find(p => p.url === currentPage?.url);
 	const playingPages = pages.filter(p => playingMap[p.url]);
-	const otherPlayingPages = playingPages.filter(p => p.url !== currentSavedPage?.url)
+	const otherPlayingPages = playingPages.filter(p => p.url !== currentSavedPage?.url);
 
 	useEffect(() => {
 		(async () => {
@@ -252,28 +252,6 @@ function Popup() {
 						</>
 					)}
 				</List>
-						{/* <ButtonGroup>
-							{currentSavedPage && (
-								<>
-									{currentPageIsPlaying ? (
-										<Button
-											size="small"
-											startIcon={<PauseIcon />}
-											onClick={() => handlePause(currentSavedPage.url)}
-										>
-											Pause
-										</Button>
-									) : (
-										<Button
-											size="small"
-											startIcon={<PlayIcon/>}
-											onClick={() => handlePlay(currentSavedPage.url)}
-										>
-											Play
-										</Button>
-									)}
-								</>
-						</ButtonGroup> */}
 				{playingPages.filter(p => p.url !== currentSavedPage?.url).map(p => (
 					<Button onClick={() => currentPage?.url && handlePlay(currentPage.url)}>
 						Play

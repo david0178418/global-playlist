@@ -25,7 +25,7 @@ interface Message {
 	data: any;
 }
 
-chrome.runtime.onMessage.addListener(async (msg: Message) => {
+chrome.runtime.onMessage.addListener((msg: Message, sender, response) => {
 	const {
 		action,
 		data,
@@ -35,7 +35,9 @@ chrome.runtime.onMessage.addListener(async (msg: Message) => {
 		return;
 	}
 
-	await Actions[action](data);
+	Actions[action](data).then(response);
+
+	return true;
 });
 
 const Actions = {
@@ -119,19 +121,19 @@ async function checkPageData({ url }: any) {
 	const currentPage = await findPage(url);
 
 	if(!currentPage?.url) {
-		return;
+		return { isSaved: false };
 	}
 
 	const currentSavedPage = savedPages.find(p => p. url === currentPage.url);
 
 	if(!currentSavedPage) {
 		// Page isn't saved, so nothing to update
-		return;
+		return { isSaved: false };
 	}
 
 	if(currentSavedPage.title && currentSavedPage.favIconUrl) {
 		// If proper data is preseent, then do nothing
-		return;
+		return { isSaved: true };
 	}
 
 	const {
@@ -144,6 +146,8 @@ async function checkPageData({ url }: any) {
 		title,
 		favIconUrl,
 	});
+
+	return { isSaved: true };
 }
 
 function sleep(ms: number) {

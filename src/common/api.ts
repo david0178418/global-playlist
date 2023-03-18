@@ -217,12 +217,9 @@ async function play(url: string, replaceUrl = '') {
 export
 async function pause(url: string) {
 	try {
-		const page = await findPage(url) || await chrome.tabs.create({
-			url,
-			active: false,
-		});
+		const page = await findPage(url);
 
-		if(!page.id) {
+		if(!page?.id) {
 			return;
 		}
 
