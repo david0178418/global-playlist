@@ -61,8 +61,9 @@ function foo(isSaved: boolean) {
 			video.addEventListener('ended', () => broadcastFinished(location.href));
 			document.removeEventListener('DOMNodeInserted', fooListener);
 
-			if(isSaved && video.paused) {
-				video.play();
+			if(isSaved) {
+				video.paused && video.play();
+				video.muted = false;
 			}
 
 			return;
@@ -136,6 +137,7 @@ async function notifyDone({finishedPage, nextPage}: NotifyDoneArg) {
 				border-radius: 5px;
 				border: 1px solid #b9b9b9;
 				box-shadow: 10px 10px 15px;
+				font-family: Roboto, Arial, san-serif;
 				position: fixed;
 				right: 20px;
 				top: 20px;

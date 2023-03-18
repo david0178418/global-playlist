@@ -196,7 +196,7 @@ function Popup() {
 												paddingRight={1}
 											/>
 										)}
-										{currentSavedPage.title || currentSavedPage.url}
+										{currentSavedPage.title.substring(0, 100) || currentSavedPage.url}
 									</>
 								} />
 							</ListItemButton>
@@ -243,7 +243,7 @@ function Popup() {
 														paddingRight={1}
 													/>
 												)}
-												{p.title || p.url}
+												{p.title.substring(0, 100) || p.url}
 											</>
 										} />
 									</ListItemButton>
@@ -303,7 +303,7 @@ function Popup() {
 											paddingRight={1}
 										/>
 									)}
-									{p.title || p.url}
+									{p.title.substring(0, 100) || p.url}
 								</ListItemText>
 							</ListItemButton>
 						</ListItem>
