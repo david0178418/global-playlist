@@ -18,12 +18,9 @@ const manifest: chrome.runtime.ManifestV3 = {
 		default_icon: 'icon-34.png',
 	},
 	permissions: [
-		'activeTab',
 		'contentSettings',
-		'scripting',
 		'storage',
 		'tabs',
-		'tts',
 		'contextMenus',
 	],
 	icons: { 128: 'icon-128.png'	},
