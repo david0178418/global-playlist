@@ -40,7 +40,8 @@ chrome.runtime.sendMessage(
 			url: location.href,
 		},
 	},
-	({isSaved}) => {
+	(response = {}) => {
+		const {isSaved = false} = response;
 		const fooListener = foo(isSaved);
 		document.addEventListener('DOMNodeInserted', fooListener);
 
@@ -48,15 +49,9 @@ chrome.runtime.sendMessage(
 	}
 );
 
-
-
 function foo(isSaved: boolean) {
 	const fooListener = () => {
 		const video = document.querySelector('video');
-		const spotifyPlayBtn = document.querySelector<HTMLButtonElement>('[data-testid=play-button]');
-
-		console.log('spotifyPlayBtn', spotifyPlayBtn);
-
 		if(video?.src) {
 			video.addEventListener('ended', () => broadcastFinished(location.href));
 			document.removeEventListener('DOMNodeInserted', fooListener);
@@ -68,6 +63,8 @@ function foo(isSaved: boolean) {
 
 			return;
 		}
+
+		const spotifyPlayBtn = document.querySelector<HTMLButtonElement>('[data-testid=play-button]');
 
 		if(spotifyPlayBtn) {
 			document.removeEventListener('DOMNodeInserted', fooListener);
