@@ -1,5 +1,3 @@
-import type { SavedPage } from '@src/common/types';
-
 import('./app');
 
 type ActionType = keyof typeof Actions;
