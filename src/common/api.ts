@@ -36,7 +36,7 @@ async function getPlayingPages(): Promise<Record<string, boolean>> {
 type PageSavePartial = Pick<chrome.tabs.Tab, 'title' | 'url' | 'favIconUrl'>;
 
 export
-async function addPage(page: PageSavePartial): Promise<SavedPage[]> {
+async function addPage(page: PageSavePartial, index?: number): Promise<SavedPage[]> {
 	const currentPages = await getSavedPages();
 	const {
 		url,
@@ -44,17 +44,47 @@ async function addPage(page: PageSavePartial): Promise<SavedPage[]> {
 		favIconUrl = '',
 	} = page;
 
-	if(!(url)) {
+	if(!url) {
+		return currentPages;
+	}
+
+	index = index === undefined ?
+		currentPages.length:
+		index;
+
+	const newPage = {
+		url,
+		title,
+		favIconUrl,
+	};
+
+	const pages = addItem(currentPages, newPage, index);
+
+	await chrome.storage.local.set({ pages });
+
+	return pages;
+}
+
+export
+async function addPageAfter(page: PageSavePartial, afterUrl: string): Promise<SavedPage[]> {
+	const currentPages = await getSavedPages();
+	const {
+		url,
+		title = '',
+		favIconUrl = '',
+	} = page;
+
+	if(!url) {
 		return currentPages;
 	}
 
 	const pages = [
+		...currentPages,
 		{
 			url,
 			title,
 			favIconUrl,
 		},
-		...currentPages,
 	];
 
 	await chrome.storage.local.set({ pages });
@@ -282,4 +312,13 @@ function moveItemLeft<T>(arr: T[], itemIndex: number): T[] {
 	}
 
 	return swapItems(arr, itemIndex, itemIndex - 1);
+}
+
+export
+function addItem<T>(arr: T[], item: T, index = arr.length) {
+	const newArr = [...arr];
+
+	newArr.splice(index, 0, item);
+
+	return newArr;
 }

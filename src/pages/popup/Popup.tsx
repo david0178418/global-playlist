@@ -12,6 +12,7 @@ import ToTopIcon from '@mui/icons-material/KeyboardDoubleArrowUp';
 import ToBottomIcon from '@mui/icons-material/KeyboardDoubleArrowDown';
 import OpenIcon from '@mui/icons-material/OpenInNew';
 import AddIcon from '@mui/icons-material/Add';
+import NextIcon from '@mui/icons-material/Redo';
 import PauseIcon from '@mui/icons-material/Pause';
 import { Page, SavedPage } from '@src/common/types';
 import {
@@ -34,6 +35,7 @@ import {
 import {
 	Box,
 	Button as RawButton,
+	ButtonGroup,
 	Chip,
 	Divider,
 	IconButton,
@@ -80,14 +82,16 @@ function Popup() {
 		setPages(newPages);
 	}
 
-	async function handleAddPage() {
+	async function handleAddPage(next = false) {
 		if(!currentPage) {
 			return;
 		}
 
-		const newPages = await addPage(currentPage);
+		const itemIndex = next ?
+			pages.findLastIndex(p => !!playingMap[p.url]) + 1:
+			pages.length;
 
-		setPages(newPages);
+		setPages(await addPage(currentPage, itemIndex));
 	}
 
 	async function handleMainClick(url: string) {
@@ -149,14 +153,24 @@ function Popup() {
 		<Theme>
 			<Box textAlign="center" paddingTop={2}>
 				{!currentPageSaved && (
-					<Button
-						size="small"
-						onClick={handleAddPage}
-						disabled={!isWebPage}
-						endIcon={<AddIcon/>}
-					>
-						Add
-					</Button>
+					<ButtonGroup>
+						<Button
+							size="small"
+							onClick={() => handleAddPage()}
+							disabled={!isWebPage}
+							endIcon={<AddIcon/>}
+						>
+							Add to List
+						</Button>
+						<Button
+							size="small"
+							onClick={() => handleAddPage(true)}
+							disabled={!isWebPage}
+							endIcon={<NextIcon/>}
+						>
+							Play Next
+						</Button>
+					</ButtonGroup>
 				)}
 				<List>
 					{currentSavedPage && (

@@ -35,3 +35,13 @@ declare module '*.json' {
 	const content: string;
 	export default content;
 }
+
+declare global {
+	// Temporarily add until typescript adds this definition
+	interface Array<T> {
+		findLastIndex(
+			predicate: (value: T, index: number, obj: T[]) => unknown,
+			thisArg?: any
+		): number
+	}
+}
