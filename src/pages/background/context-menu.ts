@@ -1,14 +1,24 @@
-import { addPage, getSavedPages } from '@src/common/api';
+import { addPage, getPlayingPages, getSavedPages } from '@src/common/api';
+
+const MenuAddPageId = 'GlobalPlaylistAddPage';
+const MenuAddPageQueueId = 'GlobalPlaylistAddPageQueue';
+const MenuAddPageNextId = 'GlobalPlaylistAddPageNext';
+
+const MenuAddLinkId = 'GlobalPlaylistAddLink';
+const MenuAddLinkQueueId = 'GlobalPlaylistAddLinkQueue';
+const MenuAddLinkNextId = 'GlobalPlaylistAddLinkNext';
 
 const Actions = {
-	GlobalPlaylistAddLink,
-	GlobalPlaylistAddPage,
+	GlobalPlaylistAddPageQueue,
+	GlobalPlaylistAddPageNext,
+	GlobalPlaylistAddLinkQueue,
+	GlobalPlaylistAddLinkNext,
 } as const;
 
 type OnClickData = chrome.contextMenus.OnClickData;
 type Page = chrome.tabs.Tab;
 
-async function GlobalPlaylistAddPage(info: OnClickData, page?: Page) {
+async function GlobalPlaylistAddPageQueue(info: OnClickData, page?: Page) {
 	if(!page) {
 		return;
 	}
@@ -16,38 +26,121 @@ async function GlobalPlaylistAddPage(info: OnClickData, page?: Page) {
 	await addPage(page);
 }
 
-async function GlobalPlaylistAddLink(info: OnClickData) {
+async function GlobalPlaylistAddPageNext(info: OnClickData, page?: Page) {
+	if(!page) {
+		return;
+	}
+
+	const [
+		pages,
+		playingPages
+	] = await Promise.all([
+		getSavedPages(),
+		getPlayingPages(),
+	]);
+
+	const itemIndex = pages.findLastIndex(p => playingPages[p.url]) + 1;
+
+	console.log('itemIndex', itemIndex);
+
+	await addPage(page, itemIndex);
+}
+
+async function GlobalPlaylistAddLinkQueue(info: OnClickData) {
 	await addPage({
 		url: info.linkUrl,
 	});
 }
 
-chrome.contextMenus.create({
-	id: 'GlobalPlaylistAddPage',
-	title: 'Add page to queue',
-	contexts: [
-		'page',
-	],
-});
+async function GlobalPlaylistAddLinkNext(info: OnClickData) {
+	const [
+		pages,
+		playingPages
+	] = await Promise.all([
+		getSavedPages(),
+		getPlayingPages(),
+	]);
 
-chrome.contextMenus.create({
-	id: 'GlobalPlaylistAddLink',
-	title: 'Add link to queue',
-	targetUrlPatterns: [
-		'http://*/*',
-		'https://*/*',
-	],
-	contexts: [
-		'link',
-	],
+	const itemIndex = pages.findLastIndex(p => playingPages[p.url]) + 1;
+
+	console.log('itemIndex', itemIndex);
+
+	await addPage({
+		url: info.linkUrl,
+	}, itemIndex);
+}
+
+chrome.contextMenus.removeAll(() => {
+	chrome.contextMenus.create({
+		id: MenuAddPageId,
+		title: 'Add Page to List',
+		targetUrlPatterns: [
+			'http://*/*',
+			'https://*/*',
+		],
+		contexts: [
+			'page',
+		],
+	});
+
+	chrome.contextMenus.create({
+		id: MenuAddPageNextId,
+		parentId: MenuAddPageId,
+		title: 'Play Next',
+		contexts: [
+			'page',
+		],
+	});
+
+	chrome.contextMenus.create({
+		id: MenuAddPageQueueId,
+		parentId: MenuAddPageId,
+		title: 'Add to Queue',
+		contexts: [
+			'page',
+		],
+	});
+
+	chrome.contextMenus.create({
+		id: MenuAddLinkId,
+		title: 'Add link to Queue',
+		targetUrlPatterns: [
+			'http://*/*',
+			'https://*/*',
+		],
+		contexts: [
+			'link',
+		],
+	});
+
+	chrome.contextMenus.create({
+		id: MenuAddLinkNextId,
+		parentId: MenuAddLinkId,
+		title: 'Play Next',
+		contexts: [
+			'link',
+		],
+	});
+
+	chrome.contextMenus.create({
+		id: MenuAddLinkQueueId,
+		parentId: MenuAddLinkId,
+		title: 'Add to Queue',
+		contexts: [
+			'link',
+		],
+	});
 });
 
 chrome.contextMenus.onClicked.addListener((info, page) => {
-	const {
-		menuItemId
-	} = info;
+	const { menuItemId } = info;
 
-	if(!(menuItemId === 'GlobalPlaylistAddPage' || menuItemId === 'GlobalPlaylistAddLink')) {
+	if(!(
+		menuItemId === MenuAddPageQueueId ||
+		menuItemId === MenuAddPageNextId ||
+		menuItemId === MenuAddLinkQueueId ||
+		menuItemId === MenuAddLinkNextId
+	)) {
 		return;
 	}
 
