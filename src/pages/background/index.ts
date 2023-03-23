@@ -82,6 +82,7 @@ async function playNext(data: any) {
 }
 
 async function done({url: doneUrl}: any) {
+	console.log('done');
 	const currentTab = await getFocusedTab();
 	const activeTabs = currentTab ? [currentTab] : await chrome.tabs.query({
 		active: true,
