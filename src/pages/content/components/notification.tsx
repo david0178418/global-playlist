@@ -111,7 +111,7 @@ function Notification(props: Props) {
 						fontSize: 14,
 					}}
 				>
-					${nextPage.title}
+					{nextPage.title || nextPage.url}
 				</a>
 			</p>
 			<p style={{all: 'revert'}}>

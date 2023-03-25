@@ -8,6 +8,7 @@ import {
 	removePage,
 	updatePage,
 } from '@src/common/api';
+
 import './context-menu';
 
 reloadOnUpdate('pages/background');
